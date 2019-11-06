@@ -6,9 +6,9 @@ import zipfile
 import re
 import os, shutil
 
-UNRAR = '/usr/local/bin/unrar'
-TAR = '/usr/bin/tar'
-SEVENZ = '/usr/local/bin/7z'
+UNRAR = '/usr/bin/unrar'
+TAR = '/bin/tar'
+SEVENZ = '/usr/bin/7zr'
 
 def parse_submission_name(fname):
     """Extract the student identifying info
@@ -51,13 +51,19 @@ def scan_or_unpack_submissions(zfile, targetdir, targetname=None, expectzip=Fals
 
 
 def unpack_submissions(zfile, targetdir, targetname=None, expectzip=False):
-    """Given a zip file, unpack the submissions into a
-    target directory with one directory per student named
-    for their studentid
-    rename the submitted file to targetname if supplied unless it's a zip file
-    return a tuple of two lists (unpacked, problems)
-    where unpacked is a list of student ids that were ok
-    and problems are student ids that are not ok
+    """Given a zip file, unpack the submissions into a target directory 
+    with one directory per student named for their studentid.
+    - zfile: the zipped file with all student submissions.
+    - targetdir: the target directory where all submissions will be unpacked.
+    - targetname:
+       - If expectzip == False, rename the submitted file to targetname.
+       - If expectzip == True, search for targetname in the unzipped files and move
+         all other files and directories in the directory to the student main directory.
+         This is to account for cases where a student zips files maintaining a deep 
+         directory structure.
+    - expectzip: whether the student submission is a zipped file.
+    Return a tuple of two lists (unpacked, problems) where unpacked is a list of 
+    student ids that were ok and problems are student ids that are not ok.
     """
 
     zf = zipfile.ZipFile(zfile)
@@ -69,11 +75,14 @@ def unpack_submissions(zfile, targetdir, targetname=None, expectzip=False):
         # names are like:
         #   42873711_10413_assignsubmission_file_workshop1.py
         #
+        #print(name)
         (sid, pid) = parse_submission_name(name)
         sdir = os.path.join(targetdir, sid)
+        #print('--sdir:', sdir)
         if not os.path.exists(sdir):
             os.makedirs(sdir)
         extracted = os.path.abspath(zf.extract(name, sdir))
+        #print('--Extracted:', extracted)
         # check if this is a zip file
         if expectzip:
             if is_archive(extracted):
@@ -81,6 +90,20 @@ def unpack_submissions(zfile, targetdir, targetname=None, expectzip=False):
                     unpack_one(extracted, sdir)
                 except Exception:
                     problems.append("Exception in handling extraction of " + extracted)
+                if targetname and targetname not in os.listdir(sdir):
+                    # Try to find the directory that contains the target name
+                    for root, dirs, files in os.walk(sdir):
+                        # print(root, dirs, files)
+#                        if not os.path.isdir(sdir+'/'+fname):
+#                            continue
+                        if targetname in files:
+                            # print("Found %s in %s" % (targetname, files))
+                            for f in dirs + files:
+                                if f[0] != '.':
+                                    shutil.move(os.path.join(root, f), sdir)
+                            break
+                    if targetname not in os.listdir(sdir):
+                        print("Could not find %s in %s" % (targetname, sdir))
             else:
                 problems.append("Not an archive file I recognise: " + extracted)
             unpacked.append(sid)
@@ -112,11 +135,12 @@ def unpack_one(subfile, sdir):
     """Unpack a single file submitted by a student that might be
      a zipfile but could also be a tar or rar file (or none of these)"""
 
+    #print("Unpacking", subfile, "in", sdir)
+
     problem = ""
     (base, ext) = os.path.splitext(subfile)
     if ext == '.zip':
-        # use 7z for zip files since it handles more of them
-        if not un7z(subfile, sdir):
+        if not unzip(subfile, sdir):
             problem = "Unable to unzip file " + subfile
     elif ext == '.rar':
         if not unrar(subfile, sdir):
@@ -126,7 +150,7 @@ def unpack_one(subfile, sdir):
             problem = "Unable to unpack tar file " + subfile
     elif ext == '.7z':
         if not un7z(subfile, sdir):
-            problem = "Unable to unpack tar file " + subfile
+            problem = "Unable to unpack 7z file " + subfile
     else:
         status = False
         problem = "Unknown file extension: " + subfile
@@ -161,12 +185,19 @@ from subprocess import call
 def unrar(rarfile, outdir):
     """Unpack a RAR file into the target directory outdir
     Return True if it worked, False otherwise"""
+    
 
     cmd = [UNRAR, "x", "-idcdpq", "-y", rarfile]
 
     cwd = os.getcwd()
+    #print("RAR: cwd =", cwd, "outdir =", outdir)
     os.chdir(outdir)
-    retcode = call(cmd)
+    try:
+        retcode = call(cmd)
+    except Exception as e:
+        print("Something went wrong when trying to unRAR")
+        print(e)
+        retcode = 1
     os.chdir(cwd)
 
     return retcode >= 0
@@ -174,12 +205,18 @@ def unrar(rarfile, outdir):
 def untar(tarfile, outdir):
     """Unpack a tar file into the target directory outdir
     Return True if it worked, False otherwise"""
+    
 
     cmd = [TAR, "xzf", tarfile]
 
     cwd = os.getcwd()
     os.chdir(outdir)
-    retcode = call(cmd)
+    try:
+        retcode = call(cmd)
+    except Exception as e:
+        print("Something went wrong when trying to unTAR")
+        print(e)
+        retcode = 1
     os.chdir(cwd)
 
     return retcode >= 0
@@ -189,11 +226,16 @@ def un7z(file, outdir):
     """Unpack a 7z file into the target directory outdir
     Return True if it worked, False otherwise"""
 
-    cmd = [SEVENZ, "x", "-y", file]
+    cmd = [SEVENZ, "x", "-y", "-bso0", file]
 
     cwd = os.getcwd()
     os.chdir(outdir)
-    retcode = call(cmd)
+    try:
+        retcode = call(cmd)
+    except Exception as e:
+        print("Something went wrong when trying to unSEVENZ")
+        print(e)
+        retcode = 1
     os.chdir(cwd)
 
     return retcode >= 0

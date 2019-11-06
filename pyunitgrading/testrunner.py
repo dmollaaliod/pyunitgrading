@@ -13,6 +13,7 @@ import multiprocessing
 import re
 import shutil
 import csv
+import zipfile
 if sys.version_info < (3,0):
     from ConfigParser import ConfigParser
 else:
@@ -118,7 +119,11 @@ class TestRunner(multiprocessing.Process):
         # copy the test module file into the target dir
         for m in self.modules:
             #print("COPYING: ", m, " to ", self.sourcedir)
-            shutil.copy(m, self.sourcedir)
+            if m.endswith('.zip'):
+                zf2 = zipfile.ZipFile(m)
+                zf2.extractall(self.sourcedir)
+            else:
+                shutil.copy(m, self.sourcedir)
 
         try:
             os.chdir(self.sourcedir)
