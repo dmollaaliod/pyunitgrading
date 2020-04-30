@@ -57,8 +57,8 @@ The config file is INI format file containing settings for the test run as follo
     csvname: results.csv
 
 
-* basedir is the directory that submissions will be unpacked to
-* targetname is the name that each submission file is rename to in the student sub-directory, or, if the submissions are zip files, the name of one of the expected student source files (needed to find the submission in the zip file)
+* basedir is the directory that submissions will be unpacked to. If this directory exists, submissions will not be unpacked.
+* targetname is the name that each submission file is renamed to in the student sub-directory, or, if the submissions are zip files, the name of one of the expected student source files (needed to find the submission in the zip file)
 * outputname is a filename that test output will be written to in each student directory
 * testmodule the name of the python module containing unit tests (without the '.py' extension)
 * modules a list of files to be copied into each student sub-directory before tests are run, this will probably include the test file and any required data files
