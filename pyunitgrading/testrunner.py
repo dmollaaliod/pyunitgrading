@@ -183,7 +183,7 @@ def run_tests_on_collection(dirlist, basedir, testmodule, targetname, modules, o
     dirlist is a list of student submissions directories"""
 
     # 60 second timeout threshold
-    threshold = datetime.timedelta(0, 60, 0)
+    threshold = datetime.timedelta(0, 180, 0)
 
     result = []
     queue = multiprocessing.Queue()
@@ -217,7 +217,7 @@ def process(zfile, configfile):
 
     results.writerow(('SID', 'Tests', 'Failed', 'Errors', 'Total'))
 
-    unpacked, problems = scan_or_unpack_submissions(zfile, c['basedir'], c['targetname'], c['expectzip'])
+    unpacked, problems = scan_or_unpack_submissions(zfile, None, c['basedir'], c['targetname'], c['expectzip'])
 
     result = run_tests_on_collection(unpacked, c['basedir'], c['testmodule'], c['targetname'], c['modules'], c['outputname'])
 

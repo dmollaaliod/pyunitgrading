@@ -21,10 +21,12 @@ def parse_submission_name(fname):
      The pid cross references to the grading spreadsheet downloadable from iLearn"""
 
 
-    # eg 42873711_10413_assignsubmission_file_workshop1.py
+    # eg 45463077_Hamza Ahmed_7406335_assignsubmission_file_Final.py
+    #    42873711_10413_assignsubmission_file_workshop1.py
     #    43696864_5132128_assignsubmission_file_43696864_GPSTracks.zip
 
-    pattern = r'([^_]+)_([0-9]+)_.*'
+#    pattern = r'[0-9]+_([^_]+)_([0-9]+)_.*'
+    pattern = r'([0-9]+)_[^_]+_([0-9]+)_.*'
 
     match = re.match(pattern, fname)
     if match:
@@ -69,22 +71,16 @@ def unpack_submissions(zfile, csvfile, targetdir, targetname=None, expectzip=Fal
     with open(csvfile, encoding='utf-8-sig') as fd:
         reader = csv.DictReader(fd)
         for row in reader:
-            student_map[row['Full name']] = row['ID number']
+            student_map[row['ID number']] = row['ID number']
 
     unpacked = []
     problems = []
     for name in names:
-        # names are like:
-        #   
-        #   Matthew Zhang_6392434_assignsubmission_file_/45594295.zip
-        #
-        #  (name)_(pid)_(other stuff) 
-
-        (student_name, pid) = parse_submission_name(name)
-        if student_name in student_map:
-            sid = student_map[student_name]
+        (student_id, pid) = parse_submission_name(name)
+        if student_id in student_map:
+            sid = student_map[student_id]
         else:
-            print("\n\n--------------------\nName not found: ", student_name)
+            print("\n\n--------------------\nName not found: ", student_id)
             print("Please edit spreadsheet so that this name matches correctly and re-run")
             print("\n\n--------------------\n")
             return [], ['fatal']
