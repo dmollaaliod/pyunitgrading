@@ -8,7 +8,6 @@ import os
 import traceback
 import sys
 import importlib
-import imp
 import multiprocessing
 import re
 import shutil
@@ -126,7 +125,7 @@ class TestRunner(multiprocessing.Process):
             for modname in reloadmods:
                 if modname in sys.modules:
                     #print('\treloading', sys.modules[modname])
-                    target = imp.reload(sys.modules[modname])
+                    target = importlib.reload(sys.modules[modname])
 
             testmodule = importlib.import_module(self.testmodulename)
             # load all tests in the module
